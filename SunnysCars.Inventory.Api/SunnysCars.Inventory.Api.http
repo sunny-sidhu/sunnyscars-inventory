@@ -1,0 +1,40 @@
+@SunnysCars.Inventory.Api_HostAddress = http://localhost:5093
+
+### List all cars
+GET {{SunnysCars.Inventory.Api_HostAddress}}/cars
+Accept: application/json
+
+### Get a single car
+GET {{SunnysCars.Inventory.Api_HostAddress}}/cars/1
+Accept: application/json
+
+### Add a car
+POST {{SunnysCars.Inventory.Api_HostAddress}}/cars
+Content-Type: application/json
+
+{
+  "make": "Mazda",
+  "model": "MX-5",
+  "colour": "Soul Red",
+  "price": 22500.00,
+  "year": 2022,
+  "mileage": 12000
+}
+
+### Update a car
+PUT {{SunnysCars.Inventory.Api_HostAddress}}/cars/1
+Content-Type: application/json
+
+{
+  "make": "Toyota",
+  "model": "Corolla",
+  "colour": "Silver",
+  "price": 13995.00,
+  "year": 2019,
+  "mileage": 43500
+}
+
+### Delete a car
+DELETE {{SunnysCars.Inventory.Api_HostAddress}}/cars/1
+
+###

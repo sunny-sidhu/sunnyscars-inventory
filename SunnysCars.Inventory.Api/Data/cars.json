@@ -1,0 +1,56 @@
+[
+  {
+    "id": 1,
+    "make": "Toyota",
+    "model": "Corolla",
+    "colour": "Silver",
+    "price": 14995.00,
+    "year": 2019,
+    "mileage": 42000
+  },
+  {
+    "id": 2,
+    "make": "Ford",
+    "model": "Focus",
+    "colour": "Blue",
+    "price": 11250.00,
+    "year": 2018,
+    "mileage": 56300
+  },
+  {
+    "id": 3,
+    "make": "Volkswagen",
+    "model": "Golf",
+    "colour": "White",
+    "price": 18750.00,
+    "year": 2021,
+    "mileage": 21450
+  },
+  {
+    "id": 4,
+    "make": "BMW",
+    "model": "3 Series",
+    "colour": "Black",
+    "price": 27495.00,
+    "year": 2022,
+    "mileage": 15800
+  },
+  {
+    "id": 5,
+    "make": "Honda",
+    "model": "Civic",
+    "colour": "Red",
+    "price": 16400.00,
+    "year": 2020,
+    "mileage": 33900
+  },
+  {
+    "id": 6,
+    "make": "Tesla",
+    "model": "Model 3",
+    "colour": "Grey",
+    "price": 31990.00,
+    "year": 2023,
+    "mileage": 8200
+  }
+]
