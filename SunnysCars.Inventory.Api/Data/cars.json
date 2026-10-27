@@ -78,5 +78,15 @@
     "year": 2016,
     "mileage": 68750,
     "transmission": "manual"
+  },
+  {
+    "id": 9,
+    "make": "Nissan",
+    "model": "Micra",
+    "colour": "Orange",
+    "price": 7500.00,
+    "year": 2017,
+    "mileage": 52400,
+    "transmission": "manual"
   }
 ]
