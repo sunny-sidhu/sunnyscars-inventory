@@ -52,5 +52,23 @@
     "price": 31990.00,
     "year": 2023,
     "mileage": 8200
+  },
+  {
+    "id": 7,
+    "make": "Range",
+    "model": "Rover",
+    "colour": "Burgundy",
+    "price": 53990.00,
+    "year": 2022,
+    "mileage": 12500
+  },
+  {
+    "id": 8,
+    "make": "Ford",
+    "model": "Fiesta",
+    "colour": "Blue",
+    "price": 3500.00,
+    "year": 2016,
+    "mileage": 68750
   }
 ]
