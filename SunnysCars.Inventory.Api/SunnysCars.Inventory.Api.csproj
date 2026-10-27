@@ -13,7 +13,6 @@
 
     <ItemGroup>
       <Content Update="Data\cars.json">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       </Content>
     </ItemGroup>

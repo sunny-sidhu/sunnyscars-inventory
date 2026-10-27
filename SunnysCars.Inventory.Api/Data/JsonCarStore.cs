@@ -9,7 +9,8 @@ public sealed class CarStoreOptions
     public const string SectionName = "CarStore";
 
     /// <summary>
-    /// Path to the JSON file holding the cars. Relative paths are resolved against the app's output directory.
+    /// Path to the JSON file holding the cars. Relative paths are resolved against the app's content root,
+    /// which is the project directory when running locally.
     /// </summary>
     public string FilePath { get; set; } = "Data/cars.json";
 }
@@ -28,9 +29,9 @@ public sealed class JsonCarStore : ICarStore
     private readonly Lock _lock = new();
     private readonly List<Car> _cars;
 
-    public JsonCarStore(IOptions<CarStoreOptions> options)
+    public JsonCarStore(IOptions<CarStoreOptions> options, IHostEnvironment environment)
     {
-        _filePath = Path.Combine(AppContext.BaseDirectory, options.Value.FilePath);
+        _filePath = Path.Combine(environment.ContentRootPath, options.Value.FilePath);
         _cars = Load(_filePath);
     }
 
