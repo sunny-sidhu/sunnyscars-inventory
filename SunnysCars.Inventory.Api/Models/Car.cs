@@ -7,4 +7,5 @@ public sealed record Car(
     string Colour,
     decimal Price,
     int Year,
-    int Mileage);
+    int Mileage,
+    Transmission Transmission);

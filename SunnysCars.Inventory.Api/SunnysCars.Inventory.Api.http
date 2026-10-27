@@ -18,7 +18,8 @@ Content-Type: application/json
   "colour": "Soul Red",
   "price": 22500.00,
   "year": 2022,
-  "mileage": 12000
+  "mileage": 12000,
+  "transmission": "manual"
 }
 
 ### Update a car
@@ -31,7 +32,8 @@ Content-Type: application/json
   "colour": "Silver",
   "price": 13995.00,
   "year": 2019,
-  "mileage": 43500
+  "mileage": 43500,
+  "transmission": "automatic"
 }
 
 ### Delete a car

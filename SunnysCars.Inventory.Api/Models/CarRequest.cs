@@ -11,7 +11,9 @@ public sealed record CarRequest(
     [property: Required, StringLength(30, MinimumLength = 1)] string Colour,
     [property: Range(typeof(decimal), "0", "10000000")] decimal Price,
     [property: Range(1886, 2100)] int Year,
-    [property: Range(0, int.MaxValue)] int Mileage)
+    [property: Range(0, int.MaxValue)] int Mileage,
+    // Nullable so a missing value fails validation instead of silently defaulting to Automatic.
+    [property: Required, EnumDataType(typeof(Transmission))] Transmission? Transmission)
 {
-    public Car ToCar(int id) => new(id, Make, Model, Colour, Price, Year, Mileage);
+    public Car ToCar(int id) => new(id, Make, Model, Colour, Price, Year, Mileage, Transmission!.Value);
 }

@@ -13,11 +13,11 @@ public sealed class JsonCarStoreTests : IDisposable
 
     private static readonly Car[] SeedCars =
     [
-        new(1, "Toyota", "Corolla", "Silver", 14995m, 2019, 42000),
-        new(2, "Ford", "Focus", "Blue", 11250m, 2018, 56300)
+        new(1, "Toyota", "Corolla", "Silver", 14995m, 2019, 42000, Transmission.Automatic),
+        new(2, "Ford", "Focus", "Blue", 11250m, 2018, 56300, Transmission.Manual)
     ];
 
-    private static readonly CarRequest NewCar = new("Mazda", "MX-5", "Red", 22500m, 2022, 12000);
+    private static readonly CarRequest NewCar = new("Mazda", "MX-5", "Red", 22500m, 2022, 12000, Transmission.Manual);
 
     private readonly string _contentRoot = Directory.CreateTempSubdirectory("sunnyscars-tests-").FullName;
 
@@ -97,6 +97,17 @@ public sealed class JsonCarStoreTests : IDisposable
         Assert.True(store.Delete(1));
         Assert.Null(store.GetById(1));
         Assert.Equal([SeedCars[1]], CreateStore().GetAll());
+    }
+
+    [Fact]
+    public void Add_PersistsTransmissionAsLowercaseString()
+    {
+        var store = CreateStore();
+
+        store.Add(NewCar);
+
+        var json = File.ReadAllText(Path.Combine(_contentRoot, FileName));
+        Assert.Contains("\"transmission\": \"manual\"", json);
     }
 
     [Fact]
