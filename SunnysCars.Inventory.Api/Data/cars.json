@@ -88,5 +88,15 @@
     "year": 2017,
     "mileage": 52400,
     "transmission": "manual"
+  },
+  {
+    "id": 10,
+    "make": "Mazda",
+    "model": "MX-5",
+    "colour": "Racing Green",
+    "price": 17250.00,
+    "year": 2020,
+    "mileage": 24600,
+    "transmission": "manual"
   }
 ]
