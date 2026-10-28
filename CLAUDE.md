@@ -18,7 +18,7 @@ In Development, the OpenAPI document is at `/openapi/v1.json`. `SunnysCars.Inven
 
 ## Architecture
 
-This is an ASP.NET Core minimal API for a car inventory, with CRUD at `/cars` (`Endpoints/CarEndpoints.cs`). There is no database: cars are stored in a JSON file.
+This is an ASP.NET Core minimal API for a car inventory, with CRUD at `/v1/cars` (`Endpoints/CarEndpoints.cs`). Routes are versioned by nesting each resource group under a `/v1` group in `MapCarEndpoints`. There is no database: cars are stored in a JSON file.
 
 - **Storage:** `JsonCarStore` is a singleton `ICarStore`. It loads the whole file into memory at startup, guards access with a `Lock`, and rewrites the entire file on every change (writes a `.tmp` file, then moves it into place). IDs are assigned as `max(id) + 1`.
 - **Data file path:** `CarStore:FilePath` in `appsettings.json` (default `Data/cars.json`) is resolved against the content root. During `dotnet run` the content root is the project directory, so **POST/PUT/DELETE against a locally running API rewrite the git-tracked `SunnysCars.Inventory.Api/Data/cars.json`**. Use GETs or ids that don't exist when smoke-testing, or revert the file afterwards.

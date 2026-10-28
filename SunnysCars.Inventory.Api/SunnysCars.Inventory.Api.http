@@ -1,15 +1,15 @@
 @SunnysCars.Inventory.Api_HostAddress = http://localhost:5093
 
 ### List all cars
-GET {{SunnysCars.Inventory.Api_HostAddress}}/cars
+GET {{SunnysCars.Inventory.Api_HostAddress}}/v1/cars
 Accept: application/json
 
 ### Get a single car
-GET {{SunnysCars.Inventory.Api_HostAddress}}/cars/1
+GET {{SunnysCars.Inventory.Api_HostAddress}}/v1/cars/1
 Accept: application/json
 
 ### Add a car
-POST {{SunnysCars.Inventory.Api_HostAddress}}/cars
+POST {{SunnysCars.Inventory.Api_HostAddress}}/v1/cars
 Content-Type: application/json
 
 {
@@ -23,7 +23,7 @@ Content-Type: application/json
 }
 
 ### Update a car
-PUT {{SunnysCars.Inventory.Api_HostAddress}}/cars/1
+PUT {{SunnysCars.Inventory.Api_HostAddress}}/v1/cars/1
 Content-Type: application/json
 
 {
@@ -37,6 +37,6 @@ Content-Type: application/json
 }
 
 ### Delete a car
-DELETE {{SunnysCars.Inventory.Api_HostAddress}}/cars/1
+DELETE {{SunnysCars.Inventory.Api_HostAddress}}/v1/cars/1
 
 ###

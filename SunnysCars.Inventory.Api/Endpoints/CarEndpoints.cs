@@ -8,7 +8,8 @@ public static class CarEndpoints
 {
     public static IEndpointRouteBuilder MapCarEndpoints(this IEndpointRouteBuilder app)
     {
-        var cars = app.MapGroup("/cars").WithTags("Cars");
+        var v1 = app.MapGroup("/v1");
+        var cars = v1.MapGroup("/cars").WithTags("Cars");
 
         cars.MapGet("/", GetAll).WithName("GetCars");
         cars.MapGet("/{id:int}", GetById).WithName("GetCarById");
@@ -30,7 +31,7 @@ public static class CarEndpoints
     private static Created<Car> Create(CarRequest request, ICarStore store)
     {
         var car = store.Add(request);
-        return TypedResults.Created($"/cars/{car.Id}", car);
+        return TypedResults.Created($"/v1/cars/{car.Id}", car);
     }
 
     private static Results<Ok<Car>, NotFound> Update(int id, CarRequest request, ICarStore store) =>

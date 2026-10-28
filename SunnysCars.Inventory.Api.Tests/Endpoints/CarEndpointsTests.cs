@@ -42,7 +42,7 @@ public sealed class CarEndpointsTests : IDisposable
     [Fact]
     public async Task GetCars_ReturnsAllCars()
     {
-        var response = await _client.GetAsync("/cars");
+        var response = await _client.GetAsync("/v1/cars");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(SeedCars, await response.Content.ReadFromJsonAsync<Car[]>());
@@ -51,7 +51,7 @@ public sealed class CarEndpointsTests : IDisposable
     [Fact]
     public async Task GetCarById_ExistingId_ReturnsCar()
     {
-        var response = await _client.GetAsync("/cars/2");
+        var response = await _client.GetAsync("/v1/cars/2");
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(SeedCars[1], await response.Content.ReadFromJsonAsync<Car>());
@@ -60,17 +60,17 @@ public sealed class CarEndpointsTests : IDisposable
     [Fact]
     public async Task CreateCar_ValidRequest_ReturnsCreatedCar()
     {
-        var response = await _client.PostAsJsonAsync("/cars", NewCar);
+        var response = await _client.PostAsJsonAsync("/v1/cars", NewCar);
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
-        Assert.Equal("/cars/3", response.Headers.Location?.OriginalString);
+        Assert.Equal("/v1/cars/3", response.Headers.Location?.OriginalString);
         Assert.Equal(NewCar.ToCar(3), await response.Content.ReadFromJsonAsync<Car>());
     }
 
     [Fact]
     public async Task UpdateCar_ExistingId_ReturnsUpdatedCar()
     {
-        var response = await _client.PutAsJsonAsync("/cars/1", NewCar);
+        var response = await _client.PutAsJsonAsync("/v1/cars/1", NewCar);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Equal(NewCar.ToCar(1), await response.Content.ReadFromJsonAsync<Car>());
@@ -79,9 +79,9 @@ public sealed class CarEndpointsTests : IDisposable
     [Fact]
     public async Task DeleteCar_ExistingId_ReturnsNoContent()
     {
-        var response = await _client.DeleteAsync("/cars/1");
+        var response = await _client.DeleteAsync("/v1/cars/1");
 
         Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await _client.GetAsync("/cars/1")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await _client.GetAsync("/v1/cars/1")).StatusCode);
     }
 }
