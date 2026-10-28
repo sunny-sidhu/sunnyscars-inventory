@@ -28,6 +28,7 @@ This is an ASP.NET Core minimal API for a car inventory, with CRUD at `/cars` (`
 
 ## Tests
 
-`SunnysCars.Inventory.Api.Tests` has unit tests only, with no `WebApplicationFactory` or HTTP-level tests:
+`SunnysCars.Inventory.Api.Tests` has unit tests plus one HTTP-level test per endpoint:
+- **`CarEndpointsTests`:** runs the whole API in memory with `WebApplicationFactory<Program>`. It points `CarStore:FilePath` at an absolute path to a seeded temp file, so the tests never rewrite the git-tracked `Data/cars.json`.
 - **`JsonCarStoreTests`:** builds a `JsonCarStore` directly over a temporary content root (using a stub `IHostEnvironment`). Persistence is checked by creating a second store over the same file.
 - **`CarRequestTests`:** runs `Validator.TryValidateObject` on `CarRequest` and asserts which member names fail. Endpoint validation is not exercised.
