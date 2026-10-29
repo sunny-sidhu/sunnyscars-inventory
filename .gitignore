@@ -7,3 +7,5 @@ riderModule.iml
 # Rider user-specific files
 .idea/
 *.DotSettings.user
+
+TestResults/

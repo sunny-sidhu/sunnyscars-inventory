@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Commands
 
-Requires the .NET 10 SDK. Run from the repo root (`SunnysCars.Inventory.slnx` holds both projects).
+Requires the .NET 10 SDK, pinned in `global.json` (10.0.402, rolling forward to newer patches only). Run from the repo root (`SunnysCars.Inventory.slnx` holds both projects).
 
 ```sh
 dotnet build                                   # build API + tests
@@ -15,6 +15,8 @@ dotnet run --project SunnysCars.Inventory.Api  # serves on http://localhost:5093
 ```
 
 In Development, the OpenAPI document is at `/openapi/v1.json`. `SunnysCars.Inventory.Api/SunnysCars.Inventory.Api.http` has sample requests for every endpoint.
+
+CI (`.github/workflows/ci.yml`, GitHub Actions) runs `dotnet restore`, `dotnet build --no-restore` and `dotnet test --no-build` on every push and pull request to `main`, using the SDK from `global.json`. A failing test fails the run. It is annotated on the PR by the `GitHubActionsTestLogger` package, and the `.trx` results are uploaded as the `test-results` artifact.
 
 ## Architecture
 

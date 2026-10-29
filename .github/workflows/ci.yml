@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# On PRs, a newer push cancels the in-progress run. Runs on main are never cancelled,
+# so every merge commit gets its own pass/fail status.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  build-and-test:
+    name: Build and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # Installs the SDK pinned in global.json, so CI and local builds match.
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore
+
+      # A failing test exits non-zero, which fails this step and the workflow.
+      # The GitHubActions logger annotates failing tests on the PR and writes a job summary.
+      - name: Test
+        run: >-
+          dotnet test --no-build --verbosity normal
+          --logger GitHubActions
+          --logger trx
+          --results-directory TestResults
+
+      - name: Upload test results
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: test-results
+          path: TestResults/*.trx
+          if-no-files-found: warn
