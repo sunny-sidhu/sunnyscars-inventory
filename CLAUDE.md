@@ -16,6 +16,8 @@ dotnet run --project SunnysCars.Inventory.Api  # serves on http://localhost:5093
 
 In Development, the OpenAPI document is at `/openapi/v1.json`. `SunnysCars.Inventory.Api/SunnysCars.Inventory.Api.http` has sample requests for every endpoint.
 
+CI (`.github/workflows/ci.yml`, GitHub Actions) runs `dotnet restore`, `dotnet build --no-restore` and `dotnet test --no-build` on every push and pull request to `main`. A failing test fails the run.
+
 ## Architecture
 
 This is an ASP.NET Core minimal API for a car inventory, with CRUD at `/v1/cars` (`Endpoints/CarEndpoints.cs`). Routes are versioned by nesting each resource group under a `/v1` group in `MapCarEndpoints`. There is no database: cars are stored in a JSON file.
