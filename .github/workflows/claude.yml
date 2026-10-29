@@ -40,11 +40,37 @@ jobs:
           additional_permissions: |
             actions: read
 
-          # Optional: Give a custom prompt to Claude. If this is not specified, Claude will perform the instructions specified in the comment that tagged it.
-          # prompt: 'Update the pull request description to include a summary of changes.'
-
-          # Optional: Add claude_args to customize behavior and configuration
+          # `prompt` is deliberately left unset: setting it would replace the instructions in the
+          # @claude comment, so "@claude fix this" would stop working. The standard review
+          # guidance is appended to the system prompt instead and applies whenever Claude is asked to review.
+          #
+          # claude_args:
+          #   --model: always run on Opus. The opus alias resolves to the latest Opus model,
+          #            so new Opus versions are picked up automatically.
+          #   --append-system-prompt: the standard code review guidance. Keep it free of double
+          #            quotes, dollar signs and backticks, because claude_args is parsed like a shell command line.
           # See https://github.com/anthropics/claude-code-action/blob/main/docs/usage.md
           # or https://code.claude.com/docs/en/cli-reference for available options
-          # claude_args: '--allowed-tools Bash(gh pr *)'
+          claude_args: |
+            --model opus
+            --append-system-prompt "When you are asked to review a pull request, follow these guidelines.
+
+            Scope: review only the changes in this PR, using the surrounding code for context. Read CLAUDE.md first and treat its conventions as the project standard.
+
+            Look for, in priority order:
+            1. Correctness bugs: wrong logic, unhandled nulls, off-by-one errors, broken HTTP status codes or routes, and race conditions around the JsonCarStore lock.
+            2. Contract and data consistency: a field added to Car must also be added to CarRequest and its ToCar method, every entry in Data/cars.json, the .http samples and the test fixtures. Routes stay under /v1. Enums serialize as lowercase strings.
+            3. Validation: new CarRequest properties need DataAnnotations with the property: target. Required enums must be nullable with Required and EnumDataType.
+            4. Tests: new behaviour needs tests. Tests must never write to the git-tracked Data/cars.json.
+            5. Security: secrets in code or config, unsafe input handling, and over-broad workflow permissions or unpinned tooling in .github/workflows.
+            6. Simplification: duplicated logic or code that fights the existing patterns. Mention these only when the gain is clear.
+
+            Do not comment on formatting, naming preferences or anything a compiler or linter would catch.
+
+            Format your reply as:
+            - A one-line verdict: Looks good, Minor issues or Changes requested.
+            - Findings ordered from most to least severe. For each one give the file and line, what is wrong, a concrete scenario where it fails, and a suggested fix.
+            - If you find nothing worth raising, say so plainly. Do not pad the review.
+
+            Be direct and concise. Flag uncertainty instead of guessing."
 
