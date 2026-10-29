@@ -98,5 +98,15 @@
     "year": 2020,
     "mileage": 24600,
     "transmission": "manual"
+  },
+  {
+    "id": 11,
+    "make": "Kia",
+    "model": "Sportage",
+    "colour": "Lunar Silver",
+    "price": 19495.00,
+    "year": 2021,
+    "mileage": 29800,
+    "transmission": "automatic"
   }
 ]
