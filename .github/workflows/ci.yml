@@ -21,6 +21,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
+    # A real MongoDB for the MongoCarStore tests, which are skipped without SUNNYSCARS_TEST_MONGO.
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+
     steps:
       - name: Check out code
         uses: actions/checkout@v7
@@ -42,6 +49,8 @@ jobs:
       # A failing test exits non-zero, which fails this step and the workflow.
       # The GitHubActions logger annotates failing tests on the PR and writes a job summary.
       - name: Test
+        env:
+          SUNNYSCARS_TEST_MONGO: mongodb://localhost:27017
         run: >-
           dotnet test --no-build --verbosity normal
           --logger GitHubActions

@@ -15,5 +15,5 @@ public sealed record CarRequest(
     // Nullable so a missing value fails validation instead of silently defaulting to Automatic.
     [property: Required, EnumDataType(typeof(Transmission))] Transmission? Transmission)
 {
-    public Car ToCar(int id) => new(id, Make, Model, Colour, Price, Year, Mileage, Transmission!.Value);
+    public Car ToCar(string id) => new(id, Make, Model, Colour, Price, Year, Mileage, Transmission!.Value);
 }

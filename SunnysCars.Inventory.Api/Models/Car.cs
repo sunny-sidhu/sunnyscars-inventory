@@ -1,7 +1,7 @@
 namespace SunnysCars.Inventory.Api.Models;
 
 public sealed record Car(
-    int Id,
+    string Id,
     string Make,
     string Model,
     string Colour,

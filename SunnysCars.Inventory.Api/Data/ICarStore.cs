@@ -4,13 +4,13 @@ namespace SunnysCars.Inventory.Api.Data;
 
 public interface ICarStore
 {
-    IReadOnlyList<Car> GetAll();
+    Task<IReadOnlyList<Car>> GetAllAsync(CancellationToken cancellationToken = default);
 
-    Car? GetById(int id);
+    Task<Car?> GetByIdAsync(string id, CancellationToken cancellationToken = default);
 
-    Car Add(CarRequest request);
+    Task<Car> AddAsync(CarRequest request, CancellationToken cancellationToken = default);
 
-    Car? Update(int id, CarRequest request);
+    Task<Car?> UpdateAsync(string id, CarRequest request, CancellationToken cancellationToken = default);
 
-    bool Delete(int id);
+    Task<bool> DeleteAsync(string id, CancellationToken cancellationToken = default);
 }

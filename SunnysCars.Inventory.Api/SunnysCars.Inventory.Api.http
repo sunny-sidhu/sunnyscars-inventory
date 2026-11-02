@@ -1,11 +1,13 @@
 @SunnysCars.Inventory.Api_HostAddress = http://localhost:5093
+# Ids are MongoDB ObjectIds and differ per database: replace this with an id from "List all cars".
+@carId = 6ae89b7ba121a7e475a6aea8
 
 ### List all cars
 GET {{SunnysCars.Inventory.Api_HostAddress}}/v1/cars
 Accept: application/json
 
 ### Get a single car
-GET {{SunnysCars.Inventory.Api_HostAddress}}/v1/cars/1
+GET {{SunnysCars.Inventory.Api_HostAddress}}/v1/cars/{{carId}}
 Accept: application/json
 
 ### Add a car
@@ -23,20 +25,20 @@ Content-Type: application/json
 }
 
 ### Update a car
-PUT {{SunnysCars.Inventory.Api_HostAddress}}/v1/cars/1
+PUT {{SunnysCars.Inventory.Api_HostAddress}}/v1/cars/{{carId}}
 Content-Type: application/json
 
 {
-  "make": "Toyota",
-  "model": "Corolla",
-  "colour": "Silver",
-  "price": 13995.00,
-  "year": 2019,
-  "mileage": 43500,
-  "transmission": "automatic"
+  "make": "Nissan",
+  "model": "Micra",
+  "colour": "Orange",
+  "price": 6995.00,
+  "year": 2017,
+  "mileage": 53100,
+  "transmission": "manual"
 }
 
 ### Delete a car
-DELETE {{SunnysCars.Inventory.Api_HostAddress}}/v1/cars/1
+DELETE {{SunnysCars.Inventory.Api_HostAddress}}/v1/cars/{{carId}}
 
 ###
