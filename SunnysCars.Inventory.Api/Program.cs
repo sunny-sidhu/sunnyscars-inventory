@@ -1,3 +1,4 @@
+using MongoDB.Driver;
 using SunnysCars.Inventory.Api.Data;
 using SunnysCars.Inventory.Api.Endpoints;
 
@@ -9,8 +10,16 @@ builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddValidation();
 
-builder.Services.Configure<CarStoreOptions>(builder.Configuration.GetSection(CarStoreOptions.SectionName));
-builder.Services.AddSingleton<ICarStore, JsonCarStore>();
+builder.Services.Configure<MongoCarStoreOptions>(builder.Configuration.GetSection(MongoCarStoreOptions.SectionName));
+// One client for the whole app: it owns the connection pool.
+builder.Services.AddSingleton<IMongoClient>(services =>
+{
+    var connectionString = services.GetRequiredService<IConfiguration>().GetConnectionString(MongoCarStoreOptions.ConnectionStringName)
+        ?? throw new InvalidOperationException(
+            $"Connection string '{MongoCarStoreOptions.ConnectionStringName}' is not configured. Set ConnectionStrings:{MongoCarStoreOptions.ConnectionStringName}.");
+    return new MongoClient(connectionString);
+});
+builder.Services.AddSingleton<ICarStore, MongoCarStore>();
 
 var app = builder.Build();
 

@@ -1,6 +1,5 @@
 [
   {
-    "id": 1,
     "make": "Toyota",
     "model": "Corolla",
     "colour": "Silver",
@@ -10,7 +9,6 @@
     "transmission": "automatic"
   },
   {
-    "id": 2,
     "make": "Ford",
     "model": "Focus",
     "colour": "Blue",
@@ -20,7 +18,6 @@
     "transmission": "manual"
   },
   {
-    "id": 3,
     "make": "Volkswagen",
     "model": "Golf",
     "colour": "White",
@@ -30,7 +27,6 @@
     "transmission": "manual"
   },
   {
-    "id": 4,
     "make": "BMW",
     "model": "3 Series",
     "colour": "Black",
@@ -40,7 +36,6 @@
     "transmission": "automatic"
   },
   {
-    "id": 5,
     "make": "Honda",
     "model": "Civic",
     "colour": "Red",
@@ -50,7 +45,6 @@
     "transmission": "manual"
   },
   {
-    "id": 6,
     "make": "Tesla",
     "model": "Model 3",
     "colour": "Grey",
@@ -60,7 +54,6 @@
     "transmission": "automatic"
   },
   {
-    "id": 7,
     "make": "Land Rover",
     "model": "Range Rover",
     "colour": "Burgundy",
@@ -70,7 +63,6 @@
     "transmission": "automatic"
   },
   {
-    "id": 8,
     "make": "Ford",
     "model": "Fiesta",
     "colour": "Blue",
@@ -80,7 +72,6 @@
     "transmission": "manual"
   },
   {
-    "id": 9,
     "make": "Nissan",
     "model": "Micra",
     "colour": "Orange",
@@ -90,7 +81,6 @@
     "transmission": "manual"
   },
   {
-    "id": 10,
     "make": "Mazda",
     "model": "MX-5",
     "colour": "Racing Green",
@@ -100,7 +90,6 @@
     "transmission": "manual"
   },
   {
-    "id": 11,
     "make": "Kia",
     "model": "Sportage",
     "colour": "Lunar Silver",

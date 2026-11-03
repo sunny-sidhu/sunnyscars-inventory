@@ -12,35 +12,36 @@ public static class CarEndpoints
         var cars = v1.MapGroup("/cars").WithTags("Cars");
 
         cars.MapGet("/", GetAll).WithName("GetCars");
-        cars.MapGet("/{id:int}", GetById).WithName("GetCarById");
+        cars.MapGet("/{id}", GetById).WithName("GetCarById");
         cars.MapPost("/", Create).WithName("CreateCar");
-        cars.MapPut("/{id:int}", Update).WithName("UpdateCar");
-        cars.MapDelete("/{id:int}", Delete).WithName("DeleteCar");
+        cars.MapPut("/{id}", Update).WithName("UpdateCar");
+        cars.MapDelete("/{id}", Delete).WithName("DeleteCar");
 
         return app;
     }
 
-    private static Ok<IReadOnlyList<Car>> GetAll(ICarStore store) =>
-        TypedResults.Ok(store.GetAll());
+    private static async Task<Ok<IReadOnlyList<Car>>> GetAll(ICarStore store, CancellationToken cancellationToken) =>
+        TypedResults.Ok(await store.GetAllAsync(cancellationToken));
 
-    private static Results<Ok<Car>, NotFound> GetById(int id, ICarStore store) =>
-        store.GetById(id) is { } car
+    private static async Task<Results<Ok<Car>, NotFound>> GetById(string id, ICarStore store, CancellationToken cancellationToken) =>
+        await store.GetByIdAsync(id, cancellationToken) is { } car
             ? TypedResults.Ok(car)
             : TypedResults.NotFound();
 
-    private static Created<Car> Create(CarRequest request, ICarStore store)
+    private static async Task<Created<Car>> Create(CarRequest request, ICarStore store, CancellationToken cancellationToken)
     {
-        var car = store.Add(request);
+        var car = await store.AddAsync(request, cancellationToken);
         return TypedResults.Created($"/v1/cars/{car.Id}", car);
     }
 
-    private static Results<Ok<Car>, NotFound> Update(int id, CarRequest request, ICarStore store) =>
-        store.Update(id, request) is { } car
+    private static async Task<Results<Ok<Car>, NotFound>> Update(
+        string id, CarRequest request, ICarStore store, CancellationToken cancellationToken) =>
+        await store.UpdateAsync(id, request, cancellationToken) is { } car
             ? TypedResults.Ok(car)
             : TypedResults.NotFound();
 
-    private static Results<NoContent, NotFound> Delete(int id, ICarStore store) =>
-        store.Delete(id)
+    private static async Task<Results<NoContent, NotFound>> Delete(string id, ICarStore store, CancellationToken cancellationToken) =>
+        await store.DeleteAsync(id, cancellationToken)
             ? TypedResults.NoContent()
             : TypedResults.NotFound();
 }

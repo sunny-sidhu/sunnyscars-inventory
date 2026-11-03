@@ -5,15 +5,18 @@
         <Nullable>enable</Nullable>
         <ImplicitUsings>enable</ImplicitUsings>
         <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <UserSecretsId>7381359b-86eb-4a02-8220-693065f302d8</UserSecretsId>
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13"/>
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.13" />
+        <PackageReference Include="MongoDB.Driver" Version="3.13.0" />
     </ItemGroup>
 
     <ItemGroup>
+      <!-- Seed data for scripts/seed-mongodb.js only; the API reads cars from MongoDB. -->
       <Content Update="Data\cars.json">
-        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        <CopyToPublishDirectory>Never</CopyToPublishDirectory>
       </Content>
     </ItemGroup>
 
