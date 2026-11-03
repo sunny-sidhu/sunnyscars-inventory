@@ -20,6 +20,13 @@ In Development, the OpenAPI document is at `/openapi/v1.json`. `SunnysCars.Inven
 
 CI (`.github/workflows/ci.yml`, GitHub Actions) runs `dotnet restore`, `dotnet build --no-restore` and `dotnet test --no-build` on every push and pull request to `main`, using the SDK from `global.json`. It starts a `mongo:7` service container and sets `SUNNYSCARS_TEST_MONGO`, so the `MongoCarStore` tests run there. A failing test fails the run. It is annotated on the PR by the `GitHubActionsTestLogger` package, and the `.trx` results are uploaded as the `test-results` artifact. A separate `docker-build` job builds the container image for `linux/amd64` (it pushes nothing), so a broken Dockerfile fails the PR.
 
+The same workflow (named `CI/CD`) has a `deploy` job (SCI-8). It runs only on a push to `main`, so after a PR merge, and only once `build-and-test` and `docker-build` have passed. It never runs for pull requests. It does these steps:
+1. Logs in to Azure with OIDC (`azure/login`, no stored password) using the `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID` repository secrets. The client id belongs to an Entra app registration that has a federated credential for `repo:sunny-sidhu@39477309/sunnyscars-inventory@1435870092:ref:refs/heads/main` and `AcrPush` on the registry. The repo issues GitHub's immutable OIDC subject, which includes the owner and repo IDs, so the subject has to include them too.
+2. Builds the image and pushes it to ACR `crsunnyscarsdev01.azurecr.io` as `sunnyscars-inventory-api:<commit sha>` and `:latest`.
+3. If the repository variable `AZURE_WEBAPP_NAME` is set, points that App Service at the `<commit sha>` image and smoke-tests `GET /v1/cars` (which needs MongoDB too) until it returns 200. Without the variable, both steps are skipped. The app registration then also needs `Website Contributor` on the App Service.
+
+Deploys share the `deploy-dev` concurrency group, so they never overlap.
+
 ## Container image
 
 `SunnysCars.Inventory.Api/Dockerfile` builds from the **repo root** (it needs `global.json`) and only copies `global.json` and the API project. Always build for `linux/amd64`, which is what App Service on Linux runs. On an arm64 Mac, a plain `docker build` would produce an arm64 image that won't start there. The SDK stage cross-compiles natively (`$BUILDPLATFORM` plus `-a $TARGETARCH`) rather than running under emulation.
@@ -29,7 +36,9 @@ docker build --platform linux/amd64 -f SunnysCars.Inventory.Api/Dockerfile -t <r
 az acr build --registry <registry> --platform linux/amd64 -f SunnysCars.Inventory.Api/Dockerfile -t sunnyscars-inventory-api:<tag> .  # or build in ACR
 ```
 
-The container listens on HTTP port 8080 as a non-root user (`$APP_UID`) and runs as `Production`. For App Service (SCI-7), set:
+Normally the CD job builds and pushes the image, so you only need these commands for a manual build.
+
+The container listens on HTTP port 8080 as a non-root user (`$APP_UID`) and runs as `Production`. For App Service (SCI-7), pull the image from ACR with the app's managed identity (`AcrPull` on the registry), and set:
 - `WEBSITES_PORT=8080`
 - a connection string named `Mongo` of type Custom; this becomes `ConnectionStrings:Mongo`
 - `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`, so the app sees the original HTTPS scheme from App Service's TLS front end and `UseHttpsRedirection` doesn't misbehave

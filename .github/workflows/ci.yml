@@ -1,4 +1,4 @@
-name: CI
+name: CI/CD
 
 on:
   push:
@@ -14,6 +14,10 @@ permissions:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  ACR_NAME: crsunnyscarsdev01
+  IMAGE: crsunnyscarsdev01.azurecr.io/sunnyscars-inventory-api
 
 jobs:
   build-and-test:
@@ -79,3 +83,67 @@ jobs:
       # Same command used to build for Azure Container Registry, so a broken Dockerfile fails the PR. Nothing is pushed.
       - name: Build image for linux/amd64
         run: docker build --platform linux/amd64 -f SunnysCars.Inventory.Api/Dockerfile -t sunnyscars-inventory-api:ci .
+
+  deploy:
+    name: Deploy
+    # Only after a merge (a push to main) and only once both CI jobs have passed.
+    # Pull requests and other branches never reach this job.
+    if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+    needs: [build-and-test, docker-build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # Deploys queue instead of overlapping. If several merges land at once, only the newest waiting one runs.
+    concurrency:
+      group: deploy-dev
+      cancel-in-progress: false
+
+    permissions:
+      contents: read
+      id-token: write # OIDC token for azure/login, so no Azure password is stored in GitHub
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # Federated credential on an Entra app registration with AcrPush on the registry
+      # (and Website Contributor on the App Service, once it exists).
+      - name: Log in to Azure
+        uses: azure/login@v3
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Log in to Azure Container Registry
+        run: az acr login --name "$ACR_NAME"
+
+      # The commit SHA tag is immutable and is what App Service runs. latest always points at the newest main build.
+      - name: Build and push image for linux/amd64
+        run: |
+          docker build --platform linux/amd64 -f SunnysCars.Inventory.Api/Dockerfile \
+            -t "$IMAGE:$GITHUB_SHA" -t "$IMAGE:latest" .
+          docker push --all-tags "$IMAGE"
+          echo "Pushed \`$IMAGE:$GITHUB_SHA\` and \`$IMAGE:latest\`" >> "$GITHUB_STEP_SUMMARY"
+
+      # The App Service steps are skipped until the repository variable AZURE_WEBAPP_NAME is set (SCI-7).
+      - name: Deploy image to App Service
+        id: webapp
+        if: ${{ vars.AZURE_WEBAPP_NAME != '' }}
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_WEBAPP_NAME }}
+          images: ${{ env.IMAGE }}:${{ github.sha }}
+
+      # GET /v1/cars needs both the container and MongoDB, so a 200 means the deployed API is healthy.
+      # A free-tier container can take a few minutes to pull and start, so this retries for up to ~5 minutes.
+      - name: Smoke test
+        if: ${{ steps.webapp.outcome == 'success' }}
+        env:
+          WEBAPP_URL: ${{ steps.webapp.outputs.webapp-url }}
+        run: >-
+          curl --fail --silent --show-error --output /dev/null
+          --retry 20 --retry-delay 15 --retry-all-errors --max-time 30
+          "${WEBAPP_URL%/}/v1/cars"
