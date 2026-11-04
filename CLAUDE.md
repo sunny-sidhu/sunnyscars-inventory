@@ -43,16 +43,18 @@ The container listens on HTTP port 8080 as a non-root user (`$APP_UID`) and runs
 ### App Service (SCI-7)
 
 `app-sunnyscars-api-dev-01` runs the image from ACR on Linux, in App Service's *site containers* (sidecar) mode. Its main container is named `main`, uses image `sunnyscars-inventory-api` and port `8080`, and has no startup command (the image's `ENTRYPOINT` starts the app). It starts on `:latest`, and each deploy then pins it to a `<commit sha>` tag. It needs:
-- its system-assigned managed identity turned on, with `AcrPull` on `crsunnyscarsdev01`, and the container's registry authentication set to that identity
+- the user-assigned managed identity `id-sunnyscars-dev-01` attached to the app and used for the container's registry authentication; it has `AcrPull` on `crsunnyscarsdev01`
 - a connection string named `Mongo` of type Custom, holding the DocumentDB global read-write string; this becomes `ConnectionStrings:Mongo`
 - `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`, so the app sees the original HTTPS scheme from App Service's TLS front end and `UseHttpsRedirection` doesn't misbehave
 - network access to the DocumentDB cluster: allow Azure services in the cluster's Networking firewall, or add the App Service's outbound IP addresses
 
 The container's port replaces `WEBSITES_PORT`, which site containers don't use.
 
-For the CD job to deploy to it, give `sunnyscars-api-dev-cicd-01` the `Website Contributor` role on the App Service (or its resource group). Then set the repository variable `AZURE_WEBAPP_NAME` to `app-sunnyscars-api-dev-01`.
+For the CD job to deploy to it, give `sunnyscars-api-dev-cicd-01` the `Website Contributor` role on the App Service (or its resource group). Then set two repository variables:
+- `AZURE_WEBAPP_NAME`: `app-sunnyscars-api-dev-01`
+- `ACR_PULL_IDENTITY_CLIENT_ID`: the **Client ID** of `id-sunnyscars-dev-01`, from its Overview page. If `AZURE_WEBAPP_NAME` is set without this one, the deploy job fails before it changes the app.
 
-The deploy step replaces the whole `main` container definition on every run, so its `sitecontainers-config` in `ci.yml` must match the portal: name `main`, port `8080`, `SystemIdentity` auth, and app settings and connection strings inherited. If you change any of these in the portal, change them in `ci.yml` too, or the next deploy reverts them. Don't switch the step back to `images:`: that converts the app back to a single classic container.
+The deploy step replaces the whole `main` container definition on every run, so its `sitecontainers-config` in `ci.yml` must match the portal: name `main`, port `8080`, `UserAssigned` auth with that identity's client id, and app settings and connection strings inherited. If you change any of these in the portal, change them in `ci.yml` too, or the next deploy reverts them. Don't switch the step back to `images:`: that converts the app back to a single classic container.
 
 ## Architecture
 

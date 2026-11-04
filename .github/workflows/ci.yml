@@ -129,9 +129,17 @@ jobs:
           echo "Pushed \`$IMAGE:$GITHUB_SHA\` and \`$IMAGE:latest\`" >> "$GITHUB_STEP_SUMMARY"
 
       # The App Service steps are skipped until the repository variable AZURE_WEBAPP_NAME is set (SCI-7).
+      # Without the pull identity's client id, the deploy below would drop it and the app couldn't pull from ACR.
+      - name: Check App Service variables
+        if: ${{ vars.AZURE_WEBAPP_NAME != '' && vars.ACR_PULL_IDENTITY_CLIENT_ID == '' }}
+        run: |
+          echo "::error::Set the repository variable ACR_PULL_IDENTITY_CLIENT_ID to the client id of id-sunnyscars-dev-01."
+          exit 1
+
       # The app uses site containers, so this replaces its "main" container; `images:` would switch it back to a
       # single classic container. The update is a full replace, so it restates every setting from the portal:
-      # pull with the app's managed identity, port 8080, and the app settings and connection strings (Mongo).
+      # pull with the user-assigned identity id-sunnyscars-dev-01, port 8080, and the app settings and connection
+      # strings (Mongo).
       - name: Deploy image to App Service
         id: webapp
         if: ${{ vars.AZURE_WEBAPP_NAME != '' }}
@@ -145,7 +153,8 @@ jobs:
                 "image": "${{ env.IMAGE }}:${{ github.sha }}",
                 "isMain": true,
                 "targetPort": "8080",
-                "authType": "SystemIdentity",
+                "authType": "UserAssigned",
+                "userManagedIdentityClientId": "${{ vars.ACR_PULL_IDENTITY_CLIENT_ID }}",
                 "inheritAppSettingsAndConnectionStrings": true
               }
             ]
