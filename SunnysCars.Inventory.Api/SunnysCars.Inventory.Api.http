@@ -41,4 +41,8 @@ Content-Type: application/json
 ### Delete a car
 DELETE {{SunnysCars.Inventory.Api_HostAddress}}/v1/cars/{{carId}}
 
+### Health: MongoDB status and the commit the app was built from (200 Healthy, 503 Unhealthy)
+GET {{SunnysCars.Inventory.Api_HostAddress}}/health
+Accept: application/json
+
 ###
