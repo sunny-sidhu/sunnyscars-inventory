@@ -21,9 +21,9 @@ In Development, the OpenAPI document is at `/openapi/v1.json`. `SunnysCars.Inven
 CI (`.github/workflows/ci.yml`, GitHub Actions) runs `dotnet restore`, `dotnet build --no-restore` and `dotnet test --no-build` on every push and pull request to `main`, using the SDK from `global.json`. It starts a `mongo:7` service container and sets `SUNNYSCARS_TEST_MONGO`, so the `MongoCarStore` tests run there. A failing test fails the run. It is annotated on the PR by the `GitHubActionsTestLogger` package, and the `.trx` results are uploaded as the `test-results` artifact. A separate `docker-build` job builds the container image for `linux/amd64` (it pushes nothing), so a broken Dockerfile fails the PR.
 
 The same workflow (named `CI/CD`) has a `deploy` job (SCI-8). It runs only on a push to `main`, so after a PR merge, and only once `build-and-test` and `docker-build` have passed. It never runs for pull requests. It does these steps:
-1. Logs in to Azure with OIDC (`azure/login`, no stored password) using the `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID` repository secrets. The client id belongs to an Entra app registration that has a federated credential for `repo:sunny-sidhu@39477309/sunnyscars-inventory@1435870092:ref:refs/heads/main` and `AcrPush` on the registry. The repo issues GitHub's immutable OIDC subject, which includes the owner and repo IDs, so the subject has to include them too.
+1. Logs in to Azure with OIDC (`azure/login`, no stored password) using the `AZURE_CLIENT_ID`, `AZURE_TENANT_ID` and `AZURE_SUBSCRIPTION_ID` repository secrets. The client id belongs to the Entra app registration `sunnyscars-api-dev-cicd-01`, which has a federated credential for `repo:sunny-sidhu@39477309/sunnyscars-inventory@1435870092:ref:refs/heads/main` and `AcrPush` on the registry. The repo issues GitHub's immutable OIDC subject, which includes the owner and repo IDs, so the subject has to include them too.
 2. Builds the image and pushes it to ACR `crsunnyscarsdev01.azurecr.io` as `sunnyscars-inventory-api:<commit sha>` and `:latest`.
-3. If the repository variable `AZURE_WEBAPP_NAME` is set, points that App Service at the `<commit sha>` image and smoke-tests `GET /v1/cars` (which needs MongoDB too) until it returns 200. Without the variable, both steps are skipped. The app registration then also needs `Website Contributor` on the App Service.
+3. If the repository variable `AZURE_WEBAPP_NAME` is set, points that App Service's `main` site container at the `<commit sha>` image (`azure/webapps-deploy` with `sitecontainers-config`; see App Service below) and smoke-tests `GET /v1/cars` (which needs MongoDB too) until it returns 200. Without the variable, both steps are skipped. Until the App Service exists (SCI-7), the job only pushes to ACR.
 
 Deploys share the `deploy-dev` concurrency group, so they never overlap.
 
@@ -38,10 +38,23 @@ az acr build --registry <registry> --platform linux/amd64 -f SunnysCars.Inventor
 
 Normally the CD job builds and pushes the image, so you only need these commands for a manual build.
 
-The container listens on HTTP port 8080 as a non-root user (`$APP_UID`) and runs as `Production`. For App Service (SCI-7), pull the image from ACR with the app's managed identity (`AcrPull` on the registry), and set:
-- `WEBSITES_PORT=8080`
-- a connection string named `Mongo` of type Custom; this becomes `ConnectionStrings:Mongo`
+The container listens on HTTP port 8080 as a non-root user (`$APP_UID`) and runs as `Production`.
+
+### App Service (SCI-7)
+
+`app-sunnyscars-api-dev-01` runs the image from ACR on Linux, in App Service's *site containers* (sidecar) mode. Its main container is named `main`, uses image `sunnyscars-inventory-api` and port `8080`, and has no startup command (the image's `ENTRYPOINT` starts the app). It starts on `:latest`, and each deploy then pins it to a `<commit sha>` tag. It needs:
+- the user-assigned managed identity `id-sunnyscars-dev-01` attached to the app and used for the container's registry authentication; it has `AcrPull` on `crsunnyscarsdev01`
+- a connection string named `Mongo` of type Custom, holding the DocumentDB global read-write string; this becomes `ConnectionStrings:Mongo`
 - `ASPNETCORE_FORWARDEDHEADERS_ENABLED=true`, so the app sees the original HTTPS scheme from App Service's TLS front end and `UseHttpsRedirection` doesn't misbehave
+- network access to the DocumentDB cluster: allow Azure services in the cluster's Networking firewall, or add the App Service's outbound IP addresses
+
+The container's port replaces `WEBSITES_PORT`, which site containers don't use.
+
+For the CD job to deploy to it, give `sunnyscars-api-dev-cicd-01` the `Website Contributor` role on the App Service (or its resource group). Then set two repository variables:
+- `AZURE_WEBAPP_NAME`: `app-sunnyscars-api-dev-01`
+- `ACR_PULL_IDENTITY_CLIENT_ID`: the **Client ID** of `id-sunnyscars-dev-01`, from its Overview page. If `AZURE_WEBAPP_NAME` is set without this one, the deploy job fails before it changes the app.
+
+The deploy step replaces the whole `main` container definition on every run, so its `sitecontainers-config` in `ci.yml` must match the portal: name `main`, port `8080`, `UserAssigned` auth with that identity's client id, and app settings and connection strings inherited. If you change any of these in the portal, change them in `ci.yml` too, or the next deploy reverts them. Don't switch the step back to `images:`: that converts the app back to a single classic container.
 
 ## Architecture
 
@@ -54,7 +67,7 @@ This is an ASP.NET Core minimal API for a car inventory, with CRUD at `/v1/cars`
 - **Seed data:** `SunnysCars.Inventory.Api/Data/cars.json` (no ids) is only read by `scripts/seed-mongodb.js`. That script inserts it into an empty collection and converts any double prices to `Decimal128`, so it's safe to re-run. The API never reads the file. Against Azure, pass the connection string without the password plus `--username <user>`, and mongosh prompts for the password.
 - **`Car` vs `CarRequest`:** `Car` (`Models/Car.cs`) is the stored and returned shape. `CarRequest` is the POST/PUT payload: it has no `Id`, carries the validation attributes, and maps to a `Car` via `ToCar(id)`. When you add a field to a car, update `Car`, `CarRequest` (including `ToCar` and the `MapCreator` call in `MongoCarStore`), every entry in `Data/cars.json`, the `.http` samples, and the test fixtures.
 - **Validation:** DataAnnotations on `CarRequest` use the `[property: ...]` target so they apply to the generated properties. Failing requests are rejected with a 400 by .NET 10 minimal-API validation (`builder.Services.AddValidation()`) before the handler runs. A required enum field is declared nullable with `[Required, EnumDataType]`, so a missing value fails validation instead of defaulting to the first member (see `Transmission`).
-- **JSON:** Serialization uses `JsonSerializerDefaults.Web` (camelCase). Enums serialize as lowercase strings through attributes on the enum itself (`[JsonConverter(typeof(JsonStringEnumConverter<T>))]` plus `[JsonStringEnumMemberName]`), not through global options. That way the file store and the HTTP layer agree without extra configuration.
+- **JSON:** Serialization uses `JsonSerializerDefaults.Web` (camelCase). Enums serialize as lowercase strings through attributes on the enum itself (`[JsonConverter(typeof(JsonStringEnumConverter<T>))]` plus `[JsonStringEnumMemberName]`), not through global options. That way the API and every serializer call in the tests agree without extra configuration. (MongoDB storage doesn't use `System.Text.Json`; its enum mapping is in `MongoCarStore`'s class map.)
 
 ## Tests
 
