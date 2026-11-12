@@ -82,7 +82,9 @@ jobs:
 
       # Same command used to build for Azure Container Registry, so a broken Dockerfile fails the PR. Nothing is pushed.
       - name: Build image for linux/amd64
-        run: docker build --platform linux/amd64 -f SunnysCars.Inventory.Api/Dockerfile -t sunnyscars-inventory-api:ci .
+        run: >-
+          docker build --platform linux/amd64 -f SunnysCars.Inventory.Api/Dockerfile
+          --build-arg GIT_COMMIT="$GITHUB_SHA" -t sunnyscars-inventory-api:ci .
 
   deploy:
     name: Deploy
@@ -124,7 +126,7 @@ jobs:
       - name: Build and push image for linux/amd64
         run: |
           docker build --platform linux/amd64 -f SunnysCars.Inventory.Api/Dockerfile \
-            -t "$IMAGE:$GITHUB_SHA" -t "$IMAGE:latest" .
+            --build-arg GIT_COMMIT="$GITHUB_SHA" -t "$IMAGE:$GITHUB_SHA" -t "$IMAGE:latest" .
           docker push --all-tags "$IMAGE"
           echo "Pushed \`$IMAGE:$GITHUB_SHA\` and \`$IMAGE:latest\`" >> "$GITHUB_STEP_SUMMARY"
 
@@ -159,13 +161,24 @@ jobs:
               }
             ]
 
-      # GET /v1/cars needs both the container and MongoDB, so a 200 means the deployed API is healthy.
-      # A free-tier container can take a few minutes to pull and start, so this retries for up to ~5 minutes.
+      # /health reports the commit the container was built from and whether MongoDB answers, so this passes only
+      # once the new container (not the old one) is serving and healthy. A free-tier container can take a few
+      # minutes to pull and start, so this retries for up to ~5 minutes.
       - name: Smoke test
         if: ${{ steps.webapp.outcome == 'success' }}
         env:
           WEBAPP_URL: ${{ steps.webapp.outputs.webapp-url }}
-        run: >-
-          curl --fail --silent --show-error --output /dev/null
-          --retry 20 --retry-delay 15 --retry-all-errors --max-time 30
-          "${WEBAPP_URL%/}/v1/cars"
+        run: |
+          for attempt in $(seq 1 20); do
+            body=$(curl --silent --max-time 30 "${WEBAPP_URL%/}/health" || true)
+            commit=$(jq -r '.commit // empty' <<<"$body" 2>/dev/null || true)
+            status=$(jq -r '.status // empty' <<<"$body" 2>/dev/null || true)
+            if [ "$commit" = "$GITHUB_SHA" ] && [ "$status" = "Healthy" ]; then
+              echo "$GITHUB_SHA is live and healthy: $body"
+              exit 0
+            fi
+            echo "Attempt $attempt: commit '${commit:-none}', status '${status:-none}'"
+            sleep 15
+          done
+          echo "::error::/health didn't report $GITHUB_SHA as Healthy within ~5 minutes."
+          exit 1

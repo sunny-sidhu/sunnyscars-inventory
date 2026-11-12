@@ -1,6 +1,7 @@
 using MongoDB.Driver;
 using SunnysCars.Inventory.Api.Data;
 using SunnysCars.Inventory.Api.Endpoints;
+using SunnysCars.Inventory.Api.Health;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,6 +21,9 @@ builder.Services.AddSingleton<IMongoClient>(services =>
     return new MongoClient(connectionString);
 });
 builder.Services.AddSingleton<ICarStore, MongoCarStore>();
+// The MongoDB driver waits up to 30s to find a server; a health probe should answer well before that.
+builder.Services.AddHealthChecks()
+    .AddCheck<MongoHealthCheck>("mongo", timeout: TimeSpan.FromSeconds(5));
 
 var app = builder.Build();
 
@@ -32,5 +36,6 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.MapCarEndpoints();
+app.MapHealthEndpoints();
 
 app.Run();

@@ -6,7 +6,7 @@ A REST API for the car inventory at Sunny's Cars. You can list, view, add, updat
 
 ## What it does
 
-All routes are versioned under `/v1`:
+The car routes are versioned under `/v1`:
 
 | Method | Route | Description | Responses |
 |---|---|---|---|
@@ -40,6 +40,18 @@ A car looks like this:
   - `mileage`: 0 or more
   - `transmission`: `"automatic"` or `"manual"`
 
+There is also an unversioned health endpoint for monitoring and deployments:
+
+| Method | Route | Description | Responses |
+|---|---|---|---|
+| `GET` | `/health` | Whether the API can reach MongoDB, and which commit it was built from | `200` when healthy, `503` when MongoDB doesn't answer within 5 seconds |
+
+```json
+{ "status": "Healthy", "commit": "448a6b1fc8930364f9d8e7b38aecdd82b0444c7d", "checks": { "mongo": "Healthy" } }
+```
+
+`commit` is `null` if the build had no commit, such as a `docker build` without the `GIT_COMMIT` argument. The response never includes error details; those stay in the logs.
+
 ## Architecture
 
 ### Request flow
@@ -54,6 +66,7 @@ flowchart LR
             endpoints["CarEndpoints<br/>minimal API routes"]
             validation["Validation<br/>CarRequest attributes"]
             store["MongoCarStore<br/>ICarStore"]
+            health["/health<br/>MongoHealthCheck"]
         end
         docdb[("Azure DocumentDB<br/>docdb-sunnyscars-dev-01<br/>sunnys_cars.inventory")]
     end
@@ -64,11 +77,14 @@ flowchart LR
     validation -- "valid request" --> store
     validation -. "invalid: 400" .-> appsvc
     store -- "MongoDB driver" --> docdb
+    appsvc -- "GET /health" --> health
+    health -- "ping" --> docdb
 ```
 
 - **`CarEndpoints`** (`Endpoints/CarEndpoints.cs`) maps the routes.
 - **Validation:** DataAnnotations on `CarRequest` reject bad input with a `400` before the handler runs.
 - **`MongoCarStore`** (`Data/MongoCarStore.cs`) reads and writes one document per car through a single shared `MongoClient`, which owns the connection pool.
+- **`/health`** (`Health/HealthEndpoints.cs`) pings MongoDB through `MongoHealthCheck` (`Data/MongoHealthCheck.cs`) and reports the commit the app was built from.
 - **Locally**, the same code talks to a MongoDB server on `localhost:27017`.
 
 ### Build and deployment flow
@@ -94,7 +110,7 @@ flowchart LR
     deploy -- "push :sha and :latest" --> acr[("Azure Container Registry<br/>crsunnyscarsdev01")]
     deploy -- "point main container at :sha" --> appsvc["App Service<br/>app-sunnyscars-api-dev-01"]
     acr -- "pull with id-sunnyscars-dev-01" --> appsvc
-    deploy -- "smoke test GET /v1/cars" --> appsvc
+    deploy -- "smoke test GET /health for :sha" --> appsvc
 ```
 
 - **Every pull request** runs the tests and builds the container image.
@@ -102,9 +118,9 @@ flowchart LR
   1. logs in to Azure with OIDC, so no Azure password is stored in GitHub
   2. pushes the image to ACR
   3. updates the App Service's `main` container to the new commit-SHA tag
-  4. smoke-tests the API
+  4. polls `/health` until it reports the new commit as `Healthy`, so the deploy only passes once the new container is the one answering
 
-The App Service steps are skipped until the `AZURE_WEBAPP_NAME` repository variable is set. The App Service is still being set up (SCI-7).
+The API runs on the App Service `app-sunnyscars-api-dev-01` (Linux, Free F1, North Europe). Its URL is the **Default domain** on the app's Overview page in the Azure Portal.
 
 ## Getting started
 
@@ -155,6 +171,10 @@ The API listens on `http://localhost:5093` in the `Development` environment, whi
 curl http://localhost:5093/v1/cars
 ```
 
+```bash
+curl http://localhost:5093/health
+```
+
 - The OpenAPI document is at `http://localhost:5093/openapi/v1.json` (Development only).
 - `SunnysCars.Inventory.Api/SunnysCars.Inventory.Api.http` has a sample request for every endpoint. Replace `@carId` with an id from the list response.
 
@@ -178,10 +198,11 @@ Each of those tests uses its own throwaway `sunnys_cars_test_<guid>` database an
 ### Optional: build the container image
 
 ```bash
-docker build --platform linux/amd64 -f SunnysCars.Inventory.Api/Dockerfile -t sunnyscars-inventory-api .
+docker build --platform linux/amd64 -f SunnysCars.Inventory.Api/Dockerfile --build-arg GIT_COMMIT=$(git rev-parse HEAD) -t sunnyscars-inventory-api .
 ```
 
 - Build from the repo root, because the build needs `global.json`.
+- `GIT_COMMIT` is optional. It's what `/health` reports as `commit`, because `.git` isn't copied into the image.
 - Always target `linux/amd64`, which is what App Service runs, even on an Apple Silicon Mac.
 - The container listens on port 8080 and needs a `ConnectionStrings__Mongo` environment variable.
 
@@ -205,11 +226,12 @@ global.json                            Pinned .NET SDK
 SunnysCars.Inventory.Api/
   Program.cs                           Service registration and middleware
   Endpoints/CarEndpoints.cs            /v1/cars routes
+  Health/HealthEndpoints.cs            /health endpoint
   Models/                              Car, CarRequest (validation), Transmission
-  Data/                                ICarStore, MongoCarStore, cars.json seed data
+  Data/                                ICarStore, MongoCarStore, MongoHealthCheck, cars.json seed data
   Dockerfile                           Multi-stage linux/amd64 image
   SunnysCars.Inventory.Api.http        Sample requests
-SunnysCars.Inventory.Api.Tests/        xUnit tests: endpoints, validation, MongoCarStore
+SunnysCars.Inventory.Api.Tests/        xUnit tests: endpoints, health, validation, MongoDB
 scripts/seed-mongodb.js                Seeds a MongoDB collection from cars.json
 .github/workflows/ci.yml               CI/CD: test, build image, deploy to Azure
 ```
